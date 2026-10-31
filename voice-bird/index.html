@@ -4,28 +4,30 @@
 <style>body{margin:0;background:#E6F1FB;font-family:sans-serif;text-align:center;padding:16px}canvas{border-radius:12px;max-width:100%;touch-action:manipulation}p{color:#0C447C;font-size:14px}</style>
 </head><body>
 <canvas id="c" width="320" height="440"></canvas>
-<p id="h">צליל גבוה מעלה, צליל נמוך מוריד. בשקט הציפור נשארת בגובה שלה.</p>
+<p id="h">שירו דו, רה, מי, פה, סול, לה, סי. כל צליל מעיף את הציפור לקומה שלו.</p>
 <script>
-const c=document.getElementById('c'),x=c.getContext('2d'),h=document.getElementById('h');let y,v,P,sc,st,f,best=0,A,an,buf,hz=0,ty=200,H=[];
-const LO=130,HI=650,lv=()=>Math.min(1,sc/30),sp=()=>1+1.2*lv(),gap=()=>105-35*lv();
+const c=document.getElementById('c'),x=c.getContext('2d'),h=document.getElementById('h');
+const N=['דו','רה','מי','פה','סול','לה','סי'],DEG=[0,0,1,1,2,3,3,4,4,5,5,6],LY=i=>378-56*i,COL=['#E24B4A','#EF9F27','#FAC775','#97C459','#5DCAA5','#378ADD','#7F77DD'];
+let y,v,P,sc,st,f,best=0,A,an,buf,note=-1,cur=0,H=[];
+const lv=()=>Math.min(1,sc/30),sp=()=>1+1.1*lv(),gap=()=>58-14*lv();
 async function mic(){try{A=new AudioContext();const s=await navigator.mediaDevices.getUserMedia({audio:true});an=A.createAnalyser();an.fftSize=2048;buf=new Float32Array(2048);A.createMediaStreamSource(s).connect(an);return 1}catch(e){h.textContent='אין גישה למיקרופון. צריך לאשר הרשאה בדפדפן.';return 0}}
-function pitch(){an.getFloatTimeDomainData(buf);let r=0;for(const q of buf)r+=q*q;if(Math.sqrt(r/2048)<.004)return 0;const sr=A.sampleRate,mn=Math.floor(sr/900),mx=Math.floor(sr/80);let bk=0,bc=0,z=0;for(let i=0;i<1024;i++)z+=buf[i]*buf[i];for(let k=mn;k<mx;k++){let s=0;for(let i=0;i<1024;i++)s+=buf[i]*buf[i+k];if(s>bc){bc=s;bk=k}}return bk&&bc/z>.25?sr/bk:0}
-function hear(){const p=pitch();if(!p){H=[];return}if(hz&&(p>hz*1.8||p<hz/1.8)&&H.length<6){H.push(p);return}H.push(p);if(H.length>7)H.shift();const m=[...H].sort((a,b)=>a-b)[H.length>>1];hz=hz?hz*.85+m*.15:m;ty=406-(Math.log(Math.min(HI,Math.max(LO,hz))/LO)/Math.log(HI/LO))*392}
-function r(){y=200;v=0;ty=200;hz=0;H=[];P=[];sc=0;f=0;st=0}
+function pitch(){an.getFloatTimeDomainData(buf);let r=0;for(const q of buf)r+=q*q;if(Math.sqrt(r/2048)<.004)return 0;const sr=A.sampleRate,mn=Math.floor(sr/1000),mx=Math.floor(sr/70);let bk=0,bc=0,z=0;for(let i=0;i<1024;i++)z+=buf[i]*buf[i];for(let k=mn;k<mx;k++){let s=0;for(let i=0;i<1024;i++)s+=buf[i]*buf[i+k];if(s>bc){bc=s;bk=k}}return bk&&bc/z>.25?sr/bk:0}
+function hear(){const p=pitch();if(!p){H=[];note=-1;return}const d=DEG[((Math.round(69+12*Math.log2(p/440))%12)+12)%12];H.push(d);if(H.length>6)H.shift();const cnt={};H.forEach(k=>cnt[k]=(cnt[k]||0)+1);for(const k in cnt)if(cnt[k]>=4){note=+k;cur=note}}
+function r(){cur=0;y=LY(0);v=0;H=[];note=-1;P=[];sc=0;f=0;st=0}
 c.addEventListener('pointerdown',async e=>{e.preventDefault();if(!an&&!(await mic()))return;A.resume();if(st==2){r();return}if(st==0)st=1});
 function loop(){x.fillStyle='#85B7EB';x.fillRect(0,0,320,440);x.fillStyle='#97C459';x.fillRect(0,420,320,20);
 if(an)hear();
-if(st==1){f++;v+=((ty-y)*.04-v)*.15;v=Math.max(-3.5,Math.min(3.5,v));y+=v;
-const L=P[P.length-1];if(f>90&&(!L||L.x<320-(230-40*lv()))){const G=gap();P.push({x:320,G,g:G+20+Math.random()*(380-2*G),p:0})}
-P.forEach(p=>{p.x-=sp();if(!p.p&&p.x<50){p.p=1;sc++}if(p.x<84&&p.x+52>56&&(y-13<p.g-p.G||y+13>p.g+p.G))st=2});P=P.filter(p=>p.x>-60);if(y>406||y<14)st=2;if(st==2)best=Math.max(best,sc)}
-x.fillStyle='#3B6D11';P.forEach(p=>{x.fillRect(p.x,0,52,p.g-p.G);x.fillRect(p.x,p.g+p.G,52,420-p.g-p.G)});
-x.strokeStyle='rgba(255,255,255,.5)';x.setLineDash([4,6]);x.lineWidth=1;x.beginPath();x.moveTo(40,ty);x.lineTo(100,ty);x.stroke();x.setLineDash([]);
+N.forEach((n,i)=>{x.fillStyle=i==cur?COL[i]:'rgba(255,255,255,.35)';x.fillRect(0,LY(i)-1,320,2);x.font='bold 13px sans-serif';x.textAlign='left';x.fillStyle=i==cur?COL[i]:'#fff';x.fillText(n,4,LY(i)-5)});
+if(st==1){f++;v+=((LY(cur)-y)*.05-v)*.18;v=Math.max(-4,Math.min(4,v));y+=v;
+const L=P[P.length-1];if(f>120&&(!L||L.x<320-(240-40*lv()))){const k=Math.floor(Math.random()*7),G=gap();P.push({x:320,G,g:LY(k),k,p:0})}
+P.forEach(p=>{p.x-=sp();if(!p.p&&p.x<50){p.p=1;sc++}if(p.x<84&&p.x+52>56&&(y-12<p.g-p.G||y+12>p.g+p.G))st=2});P=P.filter(p=>p.x>-60);if(st==2)best=Math.max(best,sc)}
+P.forEach(p=>{x.fillStyle='#3B6D11';x.fillRect(p.x,0,52,p.g-p.G);x.fillRect(p.x,p.g+p.G,52,420-p.g-p.G);x.fillStyle=COL[p.k];x.font='bold 15px sans-serif';x.textAlign='center';x.fillText(N[p.k],p.x+26,p.g-p.G-8)});
 x.save();x.translate(70,y);x.rotate(v/12);x.fillStyle='#EF9F27';x.beginPath();x.ellipse(0,0,17,13,0,0,7);x.fill();
 x.fillStyle='#FAEEDA';x.beginPath();x.ellipse(-4,3,8,(f%20<10)?3:6,0,0,7);x.fill();
 x.fillStyle='#fff';x.beginPath();x.arc(7,-4,5,0,7);x.fill();x.fillStyle='#000';x.beginPath();x.arc(8.5,-4,2.2,0,7);x.fill();
 x.fillStyle='#D85A30';x.beginPath();x.moveTo(13,0);x.lineTo(22,3);x.lineTo(13,6);x.fill();x.restore();
-x.fillStyle='#fff';x.strokeStyle='#042C53';x.lineWidth=4;x.textAlign='center';x.font='bold 40px sans-serif';x.strokeText(sc,160,60);x.fillText(sc,160,60);
-x.font='bold 14px sans-serif';const t=H.length?Math.round(hz)+' Hz':(an?'שקט':'אין מיקרופון');x.strokeText(t,280,430);x.fillText(t,280,430);
+x.textAlign='center';x.fillStyle='#fff';x.strokeStyle='#042C53';x.lineWidth=4;x.font='bold 40px sans-serif';x.strokeText(sc,160,60);x.fillText(sc,160,60);
+x.font='bold 16px sans-serif';const t=note>=0?'שומע: '+N[note]:(an?'שקט':'אין מיקרופון');x.strokeText(t,260,436);x.fillText(t,260,436);
 x.font='bold 22px sans-serif';const m=st==0?(an?'לחצו ותתחילו לשיר':'לחצו להפעלת מיקרופון'):st==2?'נפסלת! לחצו שוב':'';if(m){x.strokeText(m,160,200);x.fillText(m,160,200);if(st==2){x.strokeText('שיא: '+best,160,235);x.fillText('שיא: '+best,160,235)}}
 requestAnimationFrame(loop)}
 r();loop();
